@@ -76,14 +76,9 @@ def main():
         }
     )
     
-    # 最適化された黄色テーマCSS（高速レンダリング）
+    # 黄色テーマのマテリアルデザインCSS
     st.markdown("""
     <style>
-    /* GPU加速とパフォーマンス最適化 */
-    * {
-        transform: translateZ(0);
-        backface-visibility: hidden;
-    }
     
     /* メインテーマカラー: 黄色系 */
     :root {
@@ -493,10 +488,10 @@ def main():
             st.session_state.past_analyses = []
             st.session_state.analyses_loaded = False
         
-        # 遅延読み込みボタン
+        # リロードボタン
         col1, col2 = st.columns(2)
         with col1:
-            if st.button("📚 履歴読込", use_container_width=True) or st.button("🔄 更新", use_container_width=True):
+            if st.button("🔄 更新", use_container_width=True):
                 with st.spinner("履歴を読み込み中..."):
                     st.session_state.past_analyses = st.session_state.ai_system.db.get_analysis_results()
                     st.session_state.analyses_loaded = True
@@ -512,9 +507,7 @@ def main():
         st.markdown("---")
         
         # 過去の分析結果一覧
-        if not st.session_state.analyses_loaded:
-            st.info("📚 「履歴読込」ボタンで過去の分析結果を表示")
-        elif st.session_state.past_analyses:
+        if st.session_state.past_analyses:
             for analysis in st.session_state.past_analyses:
                 with st.expander(f"📊 {analysis['title']}", expanded=False):
                     st.write(f"**企業**: {analysis.get('company_name', 'N/A')}")
