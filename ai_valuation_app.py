@@ -58,11 +58,17 @@ class AIValuationSystem:
             st.error(f"Excel読み取りエラー: {e}")
             return ""
 
+@st.cache_resource
+def get_ai_system():
+    """AIシステムをキャッシュして高速化"""
+    return AIValuationSystem()
+
 def main():
     st.set_page_config(
         page_title="🐰 Bond - AI企業価値算定システム",
         page_icon="🐰",
         layout="wide",
+        initial_sidebar_state="expanded",
         menu_items={
             'Get Help': None,
             'Report a bug': None,
@@ -70,9 +76,15 @@ def main():
         }
     )
     
-    # 黄色テーマのマテリアルデザインCSS
+    # 最適化された黄色テーマCSS（高速レンダリング）
     st.markdown("""
     <style>
+    /* GPU加速とパフォーマンス最適化 */
+    * {
+        transform: translateZ(0);
+        backface-visibility: hidden;
+    }
+    
     /* メインテーマカラー: 黄色系 */
     :root {
         --primary-yellow: #FFD600;
@@ -469,22 +481,25 @@ def main():
         })
     
     if "ai_system" not in st.session_state:
-        st.session_state.ai_system = AIValuationSystem()
+        st.session_state.ai_system = get_ai_system()
     
     # サイドバー - 過去の分析結果
     with st.sidebar:
         st.header("📚 過去の分析結果")
         
-        # セッションステートで過去の結果を管理
+        # セッションステートで過去の結果を管理（遅延読み込み）
         if "past_analyses" not in st.session_state:
-            # 初回ロード時にMongoDBから取得
-            st.session_state.past_analyses = st.session_state.ai_system.db.get_analysis_results()
+            # 初回は空リストで高速化、必要時に読み込み
+            st.session_state.past_analyses = []
+            st.session_state.analyses_loaded = False
         
-        # リロードボタン
+        # 遅延読み込みボタン
         col1, col2 = st.columns(2)
         with col1:
-            if st.button("🔄 更新", use_container_width=True):
-                st.session_state.past_analyses = st.session_state.ai_system.db.get_analysis_results()
+            if st.button("📚 履歴読込", use_container_width=True) or st.button("🔄 更新", use_container_width=True):
+                with st.spinner("履歴を読み込み中..."):
+                    st.session_state.past_analyses = st.session_state.ai_system.db.get_analysis_results()
+                    st.session_state.analyses_loaded = True
                 st.rerun()
         
         with col2:
@@ -497,7 +512,9 @@ def main():
         st.markdown("---")
         
         # 過去の分析結果一覧
-        if st.session_state.past_analyses:
+        if not st.session_state.analyses_loaded:
+            st.info("📚 「履歴読込」ボタンで過去の分析結果を表示")
+        elif st.session_state.past_analyses:
             for analysis in st.session_state.past_analyses:
                 with st.expander(f"📊 {analysis['title']}", expanded=False):
                     st.write(f"**企業**: {analysis.get('company_name', 'N/A')}")

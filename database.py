@@ -14,24 +14,31 @@ logger = logging.getLogger(__name__)
 
 class AnalysisDatabase:
     def __init__(self):
-        """MongoDB Atlas接続初期化"""
+        """MongoDB Atlas接続初期化（遅延初期化）"""
         # MongoDB Atlas 接続URI (環境変数から取得)
         self.connection_string = os.getenv("MONGODB_URI", "mongodb://localhost:27017/")
         self.database_name = "bond_analytics"
         self.collection_name = "analysis_results"
-        
-        try:
-            self.client = MongoClient(self.connection_string)
-            self.db = self.client[self.database_name]
-            self.collection = self.db[self.collection_name]
-            
-            # 接続テスト
-            self.client.admin.command('ping')
-            logger.info("MongoDB Atlas接続成功")
-            
-        except Exception as e:
-            logger.error(f"MongoDB接続エラー: {e}")
-            self.client = None
+        self.client = None
+        self.db = None
+        self.collection = None
+    
+    def _ensure_connection(self):
+        """必要時に接続を確立（遅延初期化）"""
+        if self.client is None:
+            try:
+                self.client = MongoClient(self.connection_string, serverSelectionTimeoutMS=5000)
+                self.db = self.client[self.database_name]
+                self.collection = self.db[self.collection_name]
+                
+                # 接続テスト
+                self.client.admin.command('ping')
+                logger.info("MongoDB Atlas接続成功")
+                
+            except Exception as e:
+                logger.error(f"MongoDB接続エラー: {e}")
+                self.client = None
+        return self.client is not None
     
     def save_analysis_result(self, 
                            title: str,
@@ -52,7 +59,7 @@ class AnalysisDatabase:
         Returns:
             保存されたドキュメントのID
         """
-        if not self.client:
+        if not self._ensure_connection():
             logger.error("MongoDB接続が無効です")
             return None
             
@@ -114,7 +121,7 @@ class AnalysisDatabase:
         Returns:
             分析結果リスト
         """
-        if not self.client:
+        if not self._ensure_connection():
             return []
             
         try:
@@ -157,7 +164,7 @@ class AnalysisDatabase:
         Returns:
             分析結果詳細
         """
-        if not self.client:
+        if not self._ensure_connection():
             return None
             
         try:
@@ -190,7 +197,7 @@ class AnalysisDatabase:
         Returns:
             削除成功フラグ
         """
-        if not self.client:
+        if not self._ensure_connection():
             return False
             
         try:
@@ -222,7 +229,7 @@ class AnalysisDatabase:
         Returns:
             削除件数
         """
-        if not self.client:
+        if not self._ensure_connection():
             return 0
             
         try:
