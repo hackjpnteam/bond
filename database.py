@@ -13,10 +13,10 @@ import logging
 logger = logging.getLogger(__name__)
 
 class AnalysisDatabase:
-    def __init__(self):
+    def __init__(self, mongodb_uri=None):
         """MongoDB Atlas接続初期化（遅延初期化）"""
-        # MongoDB Atlas 接続URI (環境変数から取得)
-        self.connection_string = os.getenv("MONGODB_URI", "mongodb://localhost:27017/")
+        # MongoDB Atlas 接続URI (引数優先、環境変数から取得)
+        self.connection_string = mongodb_uri or os.getenv("MONGODB_URI", "mongodb://localhost:27017/")
         self.database_name = "bond_analytics"
         self.collection_name = "analysis_results"
         self.client = None
@@ -27,18 +27,25 @@ class AnalysisDatabase:
         """必要時に接続を確立（遅延初期化）"""
         if self.client is None:
             try:
-                self.client = MongoClient(self.connection_string, serverSelectionTimeoutMS=5000)
+                # 接続文字列の検証
+                if not self.connection_string or self.connection_string == "mongodb://localhost:27017/":
+                    logger.error("MongoDB URI が設定されていません")
+                    return False
+                
+                self.client = MongoClient(self.connection_string, serverSelectionTimeoutMS=10000)
                 self.db = self.client[self.database_name]
                 self.collection = self.db[self.collection_name]
                 
                 # 接続テスト
                 self.client.admin.command('ping')
                 logger.info("MongoDB Atlas接続成功")
+                return True
                 
             except Exception as e:
                 logger.error(f"MongoDB接続エラー: {e}")
                 self.client = None
-        return self.client is not None
+                return False
+        return True
     
     def save_analysis_result(self, 
                            title: str,
@@ -59,11 +66,12 @@ class AnalysisDatabase:
         Returns:
             保存されたドキュメントのID
         """
-        if not self._ensure_connection():
-            logger.error("MongoDB接続が無効です")
-            return None
-            
         logger.info(f"保存開始 - タイトル: {title}, 企業名: {company_name}")
+        logger.info(f"MongoDB URI: {self.connection_string[:30]}..." if self.connection_string else "MongoDB URI not set")
+        
+        if not self._ensure_connection():
+            logger.error("MongoDB接続が無効です - 保存をスキップします")
+            return None
         try:
             # 自動タイトル生成（タイトルが空の場合）
             if not title.strip():

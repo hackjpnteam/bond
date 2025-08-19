@@ -25,11 +25,22 @@ def load_api_key():
         pass
     return api_key
 
+def load_mongodb_uri():
+    """MongoDB URIを環境変数またはStreamlitのsecretsから読み込み"""
+    mongodb_uri = os.getenv("MONGODB_URI")
+    try:
+        if not mongodb_uri and hasattr(st, 'secrets') and 'MONGODB_URI' in st.secrets:
+            mongodb_uri = st.secrets["MONGODB_URI"]
+    except Exception:
+        # secrets.tomlファイルが見つからない場合はNoneを返す
+        pass
+    return mongodb_uri
+
 class AIValuationSystem:
     def __init__(self):
         self.claude_backend = BondValuationBackend(api_key=load_api_key())
         self.pdf_generator = PDFReportGenerator()
-        self.db = AnalysisDatabase()
+        self.db = AnalysisDatabase(mongodb_uri=load_mongodb_uri())
     
     def extract_from_pdf(self, pdf_file) -> str:
         """PDFからテキスト抽出"""
@@ -481,6 +492,17 @@ def main():
     # サイドバー - 過去の分析結果
     with st.sidebar:
         st.header("📚 過去の分析結果")
+        
+        # MongoDB接続状況表示
+        try:
+            if hasattr(st.session_state, 'ai_system') and st.session_state.ai_system.db._ensure_connection():
+                st.success("🟢 MongoDB接続中")
+            else:
+                st.error("🔴 MongoDB接続エラー")
+                if not load_mongodb_uri():
+                    st.warning("⚠️ MONGODB_URI が設定されていません")
+        except Exception as e:
+            st.error(f"🔴 DB接続確認エラー: {str(e)}")
         
         # セッションステートで過去の結果を管理（遅延読み込み）
         if "past_analyses" not in st.session_state:
