@@ -246,6 +246,30 @@ def main():
     [data-testid="stHeadingWithActionElements"] {
         display: none !important;
     }
+    
+    /* GitHubプロフィールアイコン・ボタンを非表示 */
+    .stApp > header {
+        display: none !important;
+    }
+    
+    /* 右上のプロフィール・設定ボタン類を非表示 */
+    [data-testid="stHeaderToolbar"] {
+        display: none !important;
+    }
+    
+    /* Streamlitのフッター情報を非表示 */
+    footer {
+        display: none !important;
+    }
+    
+    /* その他のStreamlit標準UI要素を非表示 */
+    .st-emotion-cache-18ni7ap {
+        display: none !important;
+    }
+    
+    .st-emotion-cache-164nlkn {
+        display: none !important;
+    }
     </style>
     """, unsafe_allow_html=True)
     
