@@ -270,6 +270,31 @@ def main():
     .st-emotion-cache-164nlkn {
         display: none !important;
     }
+    
+    /* Manage appボタンを非表示 */
+    [data-testid="manage-app-button"] {
+        display: none !important;
+    }
+    
+    /* Streamlitの管理系ボタンを非表示 */
+    .stActionButton {
+        display: none !important;
+    }
+    
+    /* 左上の管理系UI全般を非表示 */
+    .st-emotion-cache-1t2qdok {
+        display: none !important;
+    }
+    
+    /* Streamlit Cloud固有の管理ボタン */
+    button[aria-label*="Manage"] {
+        display: none !important;
+    }
+    
+    /* その他の管理系要素 */
+    .manage-app {
+        display: none !important;
+    }
     </style>
     """, unsafe_allow_html=True)
     
